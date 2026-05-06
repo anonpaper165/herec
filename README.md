@@ -83,8 +83,8 @@ python audit/run_structural_audit.py --dataset amazon-book
 python audit/run_structural_audit.py --dataset all
 ```
 
-Uses adaptive bucketing with λ=10 (default `--privacy-weight 10.0`), corresponding to
-the Adpt. (λ=10) row in the Appendix bucketing table.
+Uses the default log-scale bucketing configuration used in the main structural audit.
+Adaptive bucketing variants (including λ=10) are reported in the appendix bucketing table.
 
 ### Table 4 — Inference-time structural leakage unchanged by training-time DP
 

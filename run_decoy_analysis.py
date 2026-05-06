@@ -155,9 +155,12 @@ def main():
 
         for k in decoy_budgets:
             rng = np.random.RandomState(42)
-            all_unique_fracs = []
-            all_jaccards = []
-            all_costs = []
+            # User-weighted accumulators: weight each bucket by its user count
+            # so avg_unique = "fraction of users with unique pattern" (not bucket average)
+            total_unique_users = 0.0
+            total_jaccard_w = 0.0
+            total_cost_w = 0.0
+            total_users = 0
 
             # Dense: k covers all inactive slots → every user submits all C chunks.
             # Per Definition B.1, dense mode is I_u = [C] for all users, not
@@ -184,13 +187,15 @@ def main():
                 }
 
                 if metrics["n_users"] > 1:
-                    all_unique_fracs.append(metrics["distinguishable_frac"])
-                    all_jaccards.append(metrics["avg_jaccard"])
-                    all_costs.append(metrics["avg_chunks"])
+                    n_b = metrics["n_users"]
+                    total_unique_users += metrics["distinguishable_frac"] * n_b
+                    total_jaccard_w += metrics["avg_jaccard"] * n_b
+                    total_cost_w += metrics["avg_chunks"] * n_b
+                    total_users += n_b
 
-            avg_unique = float(np.mean(all_unique_fracs)) if all_unique_fracs else 0.0
-            avg_jaccard = float(np.mean(all_jaccards)) if all_jaccards else 0.0
-            avg_cost = float(np.mean(all_costs)) if all_costs else 0.0
+            avg_unique = total_unique_users / total_users if total_users > 0 else 0.0
+            avg_jaccard = total_jaccard_w / total_users if total_users > 0 else 0.0
+            avg_cost = total_cost_w / total_users if total_users > 0 else 0.0
 
             label = f"k={k}" if k < C - max_Lb else f"k={k} (dense)"
             print(f"  {label:>4} {avg_cost:>12.1f} {avg_unique:>15.3f} "
