@@ -65,17 +65,17 @@ def load_dataset(name, data_dir="data"):
     )
 
 
-def build_oblirec(dataset, privacy_weight=10.0, seed=42):
-    """Build ObliRec with privacy-aware adaptive bucketing (§4.2, Eq. 3).
+def build_oblirec(dataset, privacy_weight=0.0, seed=42):
+    """Build ObliRec with default log-scale bucketing (Table 3 configuration).
 
-    privacy_weight=10.0 is the default configuration used in the experiments.
-    Set to 0.0 for padding-cost-only optimization (log-scale equivalent at
-    scale), or increase to penalize small anonymity sets more aggressively.
+    Log-scale bucketing is the default used in the main structural audit.
+    Pass --privacy-weight > 0 with bucketing="adaptive" to reproduce the
+    adaptive bucketing variants reported in Appendix E.
     """
     return ObliRec(
         dataset,
         seed=seed,
-        bucketing="adaptive",
+        bucketing="log",
         privacy_weight=privacy_weight,
     )
 
@@ -290,9 +290,9 @@ def main():
                         help="Dataset to audit")
     parser.add_argument("--data-dir", default="data",
                         help="Root directory containing dataset folders")
-    parser.add_argument("--privacy-weight", type=float, default=10.0,
-                        help="λ in Eq. 3 adaptive bucket optimization "
-                             "(0 = padding-only, higher = larger anonymity sets)")
+    parser.add_argument("--privacy-weight", type=float, default=0.0,
+                        help="λ for adaptive bucketing variant (Appendix E); "
+                             "default 0.0 uses log-scale bucketing as in Table 3")
     parser.add_argument("--decoy-k", type=int, default=1,
                         help="Number of static decoy chunks in decoy mode")
     parser.add_argument("--seed", type=int, default=42)
