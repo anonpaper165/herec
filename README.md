@@ -14,8 +14,10 @@ This repository audits two structural leakage channels and demonstrates ObliRec'
 - **Channel 1** — support-size leakage via operation-volume signals (e.g., rotation count)
 - **Channel 2** — support-location leakage via the active chunk-index set
 
-Five audit metrics: Degree MAE, Re-ID accuracy, Anonymity set size (mean/min),
-Chunk unique %, Timing CV.
+Five audit metrics: Degree inference error, Re-ID accuracy, anonymity-set size,
+within-bucket timing CV, and interaction-recovery F1@K.
+We additionally report chunk-unique / within-bucket distinguishability diagnostics
+for Channel 2.
 
 ---
 
@@ -83,8 +85,8 @@ python audit/run_structural_audit.py --dataset amazon-book
 python audit/run_structural_audit.py --dataset all
 ```
 
-Uses the default log-scale bucketing configuration used in the main structural audit.
-Adaptive bucketing variants (including λ=10) are reported in the appendix bucketing table.
+Uses the adaptive privacy-aware bucketing configuration with λ=10 used in the main structural audit.
+Log-scale bucketing is reported as a closed-form reference in the appendix bucketing table.
 
 ### Table 4 — Inference-time structural leakage unchanged by training-time DP
 
