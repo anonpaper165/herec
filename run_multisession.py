@@ -39,21 +39,18 @@ def reid_accuracy_from_traces(user_traces, user_ids):
     user_traces: dict uid -> list of observed values (degree or bucket) across sessions
     user_ids: list of user IDs
 
-    Attacker strategy: group users by their full trace vector,
-    then re-ID accuracy = 1 / |group| for each user.
+    Metric: fraction of users with a unique trajectory fingerprint
+    (a user is re-identifiable iff no other user shares their full trace vector).
     """
-    trace_groups = defaultdict(list)
+    trace_groups = defaultdict(int)
     for uid in user_ids:
-        trace_key = tuple(user_traces[uid])
-        trace_groups[trace_key].append(uid)
+        trace_groups[tuple(user_traces[uid])] += 1
 
-    reid_accs = []
-    for uid in user_ids:
-        trace_key = tuple(user_traces[uid])
-        group_size = len(trace_groups[trace_key])
-        reid_accs.append(1.0 / group_size)
-
-    return float(np.mean(reid_accs))
+    n = len(user_ids)
+    unique_count = sum(
+        1 for uid in user_ids if trace_groups[tuple(user_traces[uid])] == 1
+    )
+    return float(unique_count) / n
 
 
 def run_multisession_experiment(
@@ -157,83 +154,79 @@ def run_multisession_experiment(
     return results
 
 
-def main():
-    # Load Gowalla dataset
-    rng = np.random.RandomState(42)
-    try:
-        from dataset import RecDataset
-        dataset = RecDataset('data/gowalla', 'gowalla')
-        train_dict = {u: list(items) for u, items in dataset.train_dict.items()
-                      if len(items) > 0}
-        print(f"Loaded real Gowalla data: {len(train_dict)} users")
-    except Exception as e:
-        print(f"Loading real data failed ({e}), using simulated power-law distribution")
-        n_users = 2000
-        # Power-law with alpha ~2.17 (Gowalla-like)
-        raw = rng.pareto(1.17, n_users) + 1
-        degrees = np.clip(raw * 5, 1, 500).astype(int)
-        train_dict = {i: list(range(int(d))) for i, d in enumerate(degrees)}
+DATASET_CONFIGS = {
+    'gowalla':     {'path': 'data/gowalla',     'rating_threshold': 0},
+    'amazon-book': {'path': 'data/amazon-book', 'rating_threshold': 0},
+}
 
-    # Sample 2000 users for experiment
-    all_uids = sorted(train_dict.keys())
-    if len(all_uids) > 2000:
-        sampled = rng.choice(all_uids, 2000, replace=False)
-        train_dict = {u: train_dict[u] for u in sampled}
+
+def load_train_dict(dataset_name):
+    from dataset import RecDataset
+    cfg = DATASET_CONFIGS[dataset_name]
+    ds = RecDataset(cfg['path'], dataset_name=dataset_name,
+                    rating_threshold=cfg['rating_threshold'])
+    return {u: list(items) for u, items in ds.train_dict.items() if len(items) > 0}
+
+
+def run_dataset(dataset_name, seed=42):
+    rng = np.random.RandomState(seed)
+    try:
+        train_dict = load_train_dict(dataset_name)
+        print(f"Loaded {dataset_name}: {len(train_dict)} users")
+    except Exception as e:
+        print(f"Loading {dataset_name} failed ({e}), skipping.")
+        return None
 
     degrees = [len(v) for v in train_dict.values()]
-    print(f"Running multi-session experiment with {len(train_dict)} users")
-    print(f"Degree range: [{min(degrees)}, {max(degrees)}]")
-    print(f"Mean degree: {np.mean(degrees):.1f}")
-    print()
+    print(f"  Degree range: [{min(degrees)}, {max(degrees)}], mean: {np.mean(degrees):.1f}")
 
     results = run_multisession_experiment(
         train_dict,
         n_sessions=10,
         sticky_thresholds=(0, 1, 3, 5),
-        seed=42
+        seed=seed,
     )
 
-    # Print results table (matching paper format)
-    print("=" * 70)
-    print("Multi-Session Re-Identification Accuracy")
-    print("=" * 70)
-    print(f"{'Strategy':<25} {'1 sess':>10} {'3 sess':>10} {'5 sess':>10} {'10 sess':>10}")
-    print("-" * 70)
-
     strategies = [
-        ('no_oblipack', 'No ObliRec'),
-        ('oblipack_no_sticky', 'ObliRec (no sticky)'),
-        ('oblipack_sticky_1', 'Sticky (δ=1)'),
-        ('oblipack_sticky_3', 'Sticky (δ=3)'),
-        ('oblipack_sticky_5', 'Sticky (δ=5)'),
+        ('no_oblipack',        'No ObliRec     '),
+        ('oblipack_no_sticky', 'ObliRec (no st.)'),
+        ('oblipack_sticky_1',  'Sticky (δ=1)   '),
+        ('oblipack_sticky_3',  'Sticky (δ=3)   '),
+        ('oblipack_sticky_5',  'Sticky (δ=5)   '),
     ]
-
+    print(f"\n  {'Strategy':<20} {'T=1':>8} {'T=3':>8} {'T=5':>8} {'T=10':>8}")
+    print("  " + "-" * 48)
     for key, label in strategies:
         if key in results:
-            vals = results[key]
-            row = f"{label:<25}"
-            for s in [1, 3, 5, 10]:
-                if s in vals:
-                    row += f" {vals[s]:>10.3f}"
-                else:
-                    row += f" {'--':>10}"
-            print(row)
+            v = results[key]
+            print(f"  {label:<20} "
+                  f"{v.get(1, float('nan')):>8.4f} "
+                  f"{v.get(3, float('nan')):>8.4f} "
+                  f"{v.get(5, float('nan')):>8.4f} "
+                  f"{v.get(10, float('nan')):>8.4f}")
 
-    print("=" * 70)
+    return {'n_users': len(train_dict), 'results': results}
 
-    # Save results
+
+def main():
+    all_output = {}
+    for ds_name in DATASET_CONFIGS:
+        print(f"\n{'='*60}")
+        print(f"  {ds_name}")
+        print(f"{'='*60}")
+        out = run_dataset(ds_name, seed=42)
+        if out is not None:
+            all_output[ds_name] = out
+
     output = {
         'experiment': 'multi_session_composition',
-        'n_users': len(train_dict),
         'n_sessions': 10,
         'session_model': 'temporal_growth_uniform_assignment',
         'sticky_model': 'delta_threshold',
-        'results': results
+        'datasets': all_output,
     }
-
     with open('results_multisession.json', 'w') as f:
         json.dump(output, f, indent=2)
-
     print(f"\nResults saved to results_multisession.json")
 
 
