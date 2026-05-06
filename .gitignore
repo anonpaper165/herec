@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Data and models (directories or symlinks)
+data
+data/
+models
+models/
+results/
+figures/
+results_*.json
+
+# Misc
+.DS_Store
+*.egg-info/
+dist/
+build/
+.env
