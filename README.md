@@ -68,7 +68,7 @@ python benchmark_e2e.py --dataset amazon-book
 ```
 
 Requires trained models. Reports Recall@20 for Vanilla LightGCN and Protocol 1/2 HE
-variants under ObliPack buckets. This is a sanity-check that HE inference preserves
+variants under ObliRec buckets. This is a sanity-check that HE inference preserves
 recommendation quality; exact Table 2 numbers depend on hardware-specific HE timing
 and may differ slightly from the paper.
 

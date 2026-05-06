@@ -205,7 +205,7 @@ def run_audit(dataset_name, data_dir="data", privacy_weight=10.0,
     print(f"  [{dataset_name}] {dataset.n_users} users, {dataset.n_items} items, "
           f"{n_train} train interactions, C={C} chunks")
 
-    print("  Building ObliPack ...", end=" ", flush=True)
+    print("  Building ObliRec ...", end=" ", flush=True)
     oblipack = build_oblirec(dataset, privacy_weight=privacy_weight, seed=seed)
     nbr_blowup = neighbor_blowup(dataset, oblipack)
     n_buckets = len(oblipack.user_buckets)

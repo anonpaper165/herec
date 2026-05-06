@@ -1,5 +1,5 @@
 """
-Multi-session composition experiment for ObliPack.
+Multi-session composition experiment for ObliRec.
 
 Simulates how re-identification accuracy accumulates over multiple sessions
 as users acquire new interactions and potentially transition between buckets.
@@ -101,7 +101,7 @@ def run_multisession_experiment(
     checkpoints = [1, 3, 5, 10]
     checkpoints = [c for c in checkpoints if c <= n_sessions]
 
-    # --- No ObliPack: attacker sees exact cumulative degree each session ---
+    # --- No ObliRec: attacker sees exact cumulative degree each session ---
     no_oblipack_traces = {uid: [] for uid in user_ids}
     no_oblipack_results = {}
     for session in range(n_sessions):
@@ -115,7 +115,7 @@ def run_multisession_experiment(
 
     results['no_oblipack'] = no_oblipack_results
 
-    # --- ObliPack with various delta-threshold sticky bucketing ---
+    # --- ObliRec with various delta-threshold sticky bucketing ---
     for delta in sticky_thresholds:
         traces = {uid: [] for uid in user_ids}
         # For delta-threshold sticky: track degree at last bucket assignment.
@@ -201,8 +201,8 @@ def main():
     print("-" * 70)
 
     strategies = [
-        ('no_oblipack', 'No ObliPack'),
-        ('oblipack_no_sticky', 'ObliPack (no sticky)'),
+        ('no_oblipack', 'No ObliRec'),
+        ('oblipack_no_sticky', 'ObliRec (no sticky)'),
         ('oblipack_sticky_1', 'Sticky (δ=1)'),
         ('oblipack_sticky_3', 'Sticky (δ=3)'),
         ('oblipack_sticky_5', 'Sticky (δ=5)'),
